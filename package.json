@@ -1,0 +1,46 @@
+{
+  "name": "@arshaw/monorepo-tool",
+  "version": "0.0.1",
+  "scripts": {
+    "clean": "rm -rf dist tmp",
+    "prep": "mkdir -p dist/src && touch dist/src/main.js && chmod +x dist/src/main.js",
+    "build": "npm run clean && npm run prep && tsc",
+    "watch": "npm run clean && npm run prep && tsc --watch",
+    "test": "jest --watchAll",
+    "test:inspect": "node --inspect-brk \"$(which jest)\" --runInBand --watchAll",
+    "test:single": "jest"
+  },
+  "bin": {
+    "monorepo": "dist/src/main.js"
+  },
+  "dependencies": {
+    "chalk": "^2.4.2",
+    "glob": "^7.1.4",
+    "minimatch": "^3.0.4",
+    "mkdirp": "^0.5.1",
+    "progress": "^2.0.3",
+    "prompts": "^2.1.0",
+    "rimraf": "^2.6.3",
+    "semver": "^6.1.2",
+    "shell-quote": "^1.6.1",
+    "tmp": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^8.0.0",
+    "@types/glob": "^7.1.1",
+    "@types/jest": "^24.0.15",
+    "@types/mkdirp": "^0.5.2",
+    "@types/node": "^12.0.7",
+    "@types/progress": "^2.0.3",
+    "@types/prompts": "^2.0.1",
+    "@types/rimraf": "^2.0.2",
+    "@types/semver": "^6.0.1",
+    "@types/shell-quote": "^1.6.1",
+    "@types/tmp": "^0.1.0",
+    "@types/yargs": "^13.0.0",
+    "fs-extra": "^8.1.0",
+    "jest": "^24.8.0",
+    "source-map-support": "^0.5.12",
+    "typescript": "^3.5.1"
+  }
+}

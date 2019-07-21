@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "strict": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "allowSyntheticDefaultImports": true,
+    "allowJs": true,
+    "checkJs": true
+  },
+  "include": [
+    "src/main.ts",
+    "test/**/*.ts",
+    "test/**/*.js"
+  ]
+}

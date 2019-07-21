@@ -1,0 +1,4 @@
+
+interface String {
+  trimEnd(): string
+}
