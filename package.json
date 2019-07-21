@@ -8,11 +8,15 @@
     "watch": "npm run clean && npm run prep && tsc --watch",
     "test": "jest --watchAll",
     "test:inspect": "node --inspect-brk \"$(which jest)\" --runInBand --watchAll",
-    "test:single": "jest"
+    "test:ci": "jest",
+    "ci": "npm run build && npm run test:ci"
   },
   "bin": {
     "monorepo": "dist/src/main.js"
   },
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "chalk": "^2.4.2",
     "glob": "^7.1.4",
