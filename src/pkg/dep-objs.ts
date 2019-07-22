@@ -18,8 +18,8 @@ export type DepType = keyof PkgDeps
 export type DepFilterArg = string | string[] | { [pkgName: string]: any } // accepts a map
 
 
-const DEP_TYPES: DepType[] = [ 'dependencies', 'devDependencies', 'optionalDependencies' ]
-const INSTALLABLE_DEP_TYPES: DepType[] = [ 'dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies' ]
+const DEP_TYPES: DepType[] = [ 'dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies' ]
+const INSTALLABLE_DEP_TYPES: DepType[] = [ 'dependencies', 'devDependencies', 'optionalDependencies' ]
 
 
 export function mapInstallableDeps<T>(deps: PkgDeps, func: (pkgName: string, versionRange: string) => T): T[] {
@@ -60,7 +60,7 @@ export function mergeDeps(deps0: PkgDeps, deps1: PkgDeps): PkgDeps {
 
   for (let depType of DEP_TYPES) {
     if (deps0[depType] || deps1[depType]) {
-      res[depType] = Object.assign({}, deps0[depType] || {}, deps1.dependencies || {})
+      res[depType] = Object.assign({}, deps0[depType] || {}, deps1[depType] || {})
     }
   }
 
@@ -159,11 +159,13 @@ export function processPkgArgs(args: string[], innerPkgsByName: { [pkgName: stri
 export function depsToFlags(deps: PkgDeps) {
   let res: { [pkgName: string]: true } = {}
 
-  for (let depType in deps) {
+  for (let depType of DEP_TYPES) {
     let depGroup = deps[depType as DepType]
 
-    for (let pkgName in depGroup) {
-      res[pkgName] = true
+    if (depGroup) {
+      for (let pkgName in depGroup) {
+        res[pkgName] = true
+      }
     }
   }
 

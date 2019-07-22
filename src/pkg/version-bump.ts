@@ -33,9 +33,13 @@ export async function bumpVersionsWithPrompt(monoRepo: MonoRepo, subjectPkgs: In
   let res = await prepareVersionBump(monoRepo, subjectPkgs, versionConfig, forceAllPkgs)
 
   if (res) {
-    let okay = await confirmMods(res.mods, res.newVersion)
-    if (okay) {
-      return res.execute()
+    if (res.mods.length) {
+      let okay = await confirmMods(res.mods, res.newVersion)
+      if (okay) {
+        return res.execute()
+      }
+    } else {
+      console.log('No packages to bump')
     }
   }
 }
@@ -43,6 +47,7 @@ export async function bumpVersionsWithPrompt(monoRepo: MonoRepo, subjectPkgs: In
 
 /*
 TODO: ordering of pkgs by who-depends-on-who
+NOTE: gitTagEnabled means commit+tag
 */
 export async function prepareVersionBump(monoRepo: MonoRepo, subjectPkgs: InnerPkg[], versionConfig: NpmVersionConfig, forceAllPkgs: boolean) {
 
@@ -112,11 +117,21 @@ export async function prepareVersionBump(monoRepo: MonoRepo, subjectPkgs: InnerP
     await versionHook()
 
     if (pkgGitRepo) {
-      await commitFiles(pkgGitRepo, modMap, versionConfig, newVersion!).catch(undoAndReject)
-      await pkgGitRepo.createTag(
-        versionConfig.gitTagPrefix + newVersion,
-        newVersion!, // TODO: better message?
-        versionConfig.gitTagSign
+      let messageTemplate = versionConfig.gitMessage || '%s' // TODO: gitMessage is a bad name. have NpmClients default to '%s' ?
+      let message = messageTemplate.replace('%s', newVersion!)
+
+      let committedRepos: GitRepo[] = [] // yuck
+      await commitFiles(pkgGitRepo, modMap, versionConfig, message, committedRepos)
+        .catch(undoAndReject)
+
+      await allSettledVoid(
+        committedRepos.map((repo) => {
+          return repo.createTag(
+            versionConfig.gitTagPrefix + newVersion,
+            message,
+            versionConfig.gitTagSign
+          )
+        })
       )
     }
 
@@ -134,7 +149,7 @@ export async function prepareVersionBump(monoRepo: MonoRepo, subjectPkgs: InnerP
 
 
   async function undoAndReject(error: Error) {
-    await undo()// undo first
+    await undo() // undo first
     throw error // then rethrow error
   }
 
@@ -175,7 +190,9 @@ function buildModMap(bumpPkgs: Pkg[], newVersion: string, allInnerPkgs: Pkg[]): 
   let modMap: ModMap = {}
 
   for (let pkg of bumpPkgs) {
-    processChangedPkg(pkg, newVersion, true, allInnerPkgs, modMap)
+    if (pkg.jsonData.version !== newVersion) {
+      processChangedPkg(pkg, newVersion, true, allInnerPkgs, modMap)
+    }
   }
 
   return modMap
@@ -184,6 +201,7 @@ function buildModMap(bumpPkgs: Pkg[], newVersion: string, allInnerPkgs: Pkg[]): 
 
 function processChangedPkg(pkg: Pkg, newVersion: string, directlyChanged: boolean, allInnerPkgs: Pkg[], modMap: ModMap) {
   let mod = modMap[pkg.dir]
+  let modAlreadyExists = Boolean(mod)
 
   if (!mod) {
     mod = modMap[pkg.dir] = { pkg, version: newVersion }
@@ -191,6 +209,10 @@ function processChangedPkg(pkg: Pkg, newVersion: string, directlyChanged: boolea
 
   if (directlyChanged) {
     mod.directlyChanged = true
+  }
+
+  if (modAlreadyExists) {
+    return mod
   }
 
   let pkgName = pkg.jsonData.name
@@ -210,7 +232,7 @@ function processChangedPkg(pkg: Pkg, newVersion: string, directlyChanged: boolea
           if (!newVerRange) {
             throw new UnknownVersionRangeBumpError(userPkg.readableId(), pkg.readableId(), existingRange)
           } else {
-            log(userPkg.dir, 'uses out of date', depType, pkgName, newVerRange)
+            log(userPkg.readableId(), 'uses out of date', depType, pkgName, newVerRange)
             updatedDeps[depType as DepType] = { [pkgName]: newVerRange }
           }
         }
@@ -254,7 +276,10 @@ async function modifyPkgFiles(mod: Mod): Promise<() => Promise<void>> {
   }
 
   if (mod.deps) {
-    Object.assign(newJsonData, mod.deps)
+    Object.assign(
+      newJsonData,
+      mergeDeps(newJsonData, mod.deps) // awkward
+    )
   }
 
   return pkg.updateJson(newJsonData)
@@ -331,13 +356,19 @@ function resetFiles(pkgGitRepo: PkgGitRepo, modMap: ModMap): Promise<void> {
 /*
 all files have already been added except for submodule refs
 */
-async function commitFiles(pkgGitRepo: PkgGitRepo, modMap: ModMap, config: NpmVersionConfig, newVersion: string): Promise<boolean> {
+async function commitFiles(
+  pkgGitRepo: PkgGitRepo,
+  modMap: ModMap,
+  config: NpmVersionConfig,
+  message: string,
+  committedRepos: GitRepo[] // by reference. TODO: move away from this
+): Promise<boolean> {
   let { submodules } = pkgGitRepo
 
   async function commitSubmodules() { // recursively commit submodule children, in parallel
     return allSettled(
       submodules.map((submodule) => {
-        return commitFiles(submodule, modMap, config, newVersion)
+        return commitFiles(submodule, modMap, config, message, committedRepos)
       })
     )
   }
@@ -363,11 +394,8 @@ async function commitFiles(pkgGitRepo: PkgGitRepo, modMap: ModMap, config: NpmVe
   }
 
   if (hasSubmoduleCommits || hasOwnMods()) {
-
-    let messageTemplate = config.gitMessage || '%s' // TODO: gitMessage is a bad name. have NpmClients default to '%s' ?
-    let message = messageTemplate.replace('%s', newVersion)
-
     await pkgGitRepo.commit(message, config.gitCommitHooks, config.gitCommitArgs)
+    committedRepos.push(pkgGitRepo)
     return true
 
   } else {

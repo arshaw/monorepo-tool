@@ -10,7 +10,7 @@
   "scripts": {
     "clean": "rm -rf dist tmp",
     "prep": "mkdir -p dist/src && touch dist/src/main.js && chmod +x dist/src/main.js",
-    "build": "npm run clean && npm run prep && tsc",
+    "build": "npm run clean && npm run prep && tsc --sourceMap false",
     "watch": "npm run clean && npm run prep && tsc --watch",
     "test": "jest --watchAll",
     "test:inspect": "node --inspect-brk \"$(which jest)\" --runInBand --watchAll",

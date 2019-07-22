@@ -1,10 +1,11 @@
 import { promisify } from 'util'
-import Pkg from './Pkg'
-import InnerPkg from './InnerPkg'
-import { allSettledVoid } from '../util/async'
 import { join as joinPaths } from 'path'
 import * as rimrafCb from 'rimraf'
-import { mapHashToArray } from '../util/hash';
+import { log } from '../util/log'
+import { allSettledVoid } from '../util/async'
+import { mapHashToArray } from '../util/hash'
+import Pkg from './Pkg'
+import InnerPkg from './InnerPkg'
 const rimraf = promisify(rimrafCb)
 
 
@@ -35,6 +36,8 @@ export function removeExactPkgDepFiles(subjectPkg: Pkg, innerPkgsByName: { [pkgN
 
 export async function removePkgDepFile(subjectPkg: Pkg, refPkgName: string): Promise<void> {
   let refPath = joinPaths(subjectPkg.dir, 'node_modules', refPkgName)
+
+  log('rimraf', refPath)
 
   await rimraf(refPath)
 }

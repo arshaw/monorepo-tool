@@ -2,6 +2,9 @@ import { bin } from './lib/exec'
 import { buildProj } from './lib/proj'
 import { queryInstalled } from './lib/npm'
 
+// TODO: tests when same dep is in dependencies/devDependencies/peerDependencies
+// TODO: links to distDir
+
 describe('link', () => {
 
   it('symlinks dirs together without installing normal deps', () => {

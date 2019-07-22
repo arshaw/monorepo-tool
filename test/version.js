@@ -2,6 +2,7 @@ import { join as joinPaths } from 'path'
 import { readJsonSync, writeFileSync } from 'fs-extra'
 import { buildProj } from './lib/proj'
 import { bin, exec } from './lib/exec'
+import { isGitTreeDirty } from './lib/git'
 import { NoRepoRootError } from '../src/errors'
 
 
@@ -11,6 +12,8 @@ describe('version', () => {
   // TODO: test customizable message
   // TODO: check clean working tree, even after failure
   // TODO: test literal version nums
+  // TODO: test submodules, when those packages have no changes, nothing gets committed
+  // TODO: more tests with devDependencies/peerDependencies
 
 
   it('fails when no git', () => {
@@ -75,6 +78,8 @@ describe('version', () => {
     ).toEqual(
       { name: 'plug', version: '0.0.1', dependencies: { core: '*' } }
     )
+
+    expect(isGitTreeDirty(proj.path)).toBe(false)
   })
 
 
@@ -122,7 +127,7 @@ describe('version', () => {
   })
 
 
-  it('bumps from a previous version when changes', () => {
+  it('bumps from a previous version when changed', () => {
     let proj = buildProj({
       'monorepo.json': { packages: [ 'packages/*' ] },
       'package.json': { dependencies: {
@@ -174,6 +179,8 @@ describe('version', () => {
     let tagNames = exec('git tag', proj.path).output.trim().split('\n')
 
     expect(tagNames).toEqual([ 'v1.0.0', 'v1.0.1' ])
+
+    expect(isGitTreeDirty(proj.path)).toBe(false)
   })
 
 

@@ -4,9 +4,10 @@ import { join as joinPaths, dirname, relative as relativizePath } from 'path'
 import * as mkdirpCb from 'mkdirp'
 import { mapHashToArray } from '../util/hash'
 import { allSettledVoid } from '../util/async'
+import { log } from '../util/log'
 import Pkg from './Pkg'
 import InnerPkg from './InnerPkg'
-import { mapInstallableDeps } from './dep-objs'
+import { mapInstallableDeps, depsToFlags } from './dep-objs'
 import { removePkgDepFile } from './dep-file-rm'
 const mkdirp = promisify(mkdirpCb)
 const fileExists = promisify(fs.exists)
@@ -25,8 +26,10 @@ export function writeNeededSymlinksForPkgs(subjectPkgs: Pkg[], innerPkgsByName: 
 will only write the symlinks that the package actually uses
 */
 export function writeNeededSymlinksForPkg(subjectPkg: Pkg, innerPkgsByName: { [pkgName: string]: InnerPkg }) {
+  let flags = depsToFlags(subjectPkg.jsonData)
+
   return allSettledVoid(
-    mapInstallableDeps(subjectPkg.jsonData, (pkgName) => {
+    mapHashToArray(flags, (pkgVersionRange, pkgName) => {
       if (innerPkgsByName[pkgName]) {
         return writePkgSymlink(subjectPkg, pkgName, innerPkgsByName[pkgName])
       } else {
@@ -56,6 +59,7 @@ export async function writePkgSymlink(subjectPkg: Pkg, otherPkgName: string, oth
   await mkdirp(linkDir)
 
   let targetDir = otherPkg.distDir || otherPkg.dir
+  log('writing symlink to', otherPkg.readableId(), targetDir)
 
   // ensure the pointed-do package has a package.json
   if (otherPkg.distDir) {
@@ -72,5 +76,6 @@ export async function writePkgSymlink(subjectPkg: Pkg, otherPkgName: string, oth
 
   let relTarget = relativizePath(linkDir, targetDir)
 
+  log('writing link', linkFile, 'content:', relTarget)
   await symlink(relTarget, linkFile)
 }

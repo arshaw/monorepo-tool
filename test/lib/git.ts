@@ -78,3 +78,9 @@ function _buildGitRepo(dir: string, submodulesInput?: SubModulesInput, tmpDir?: 
 
   return tmpPaths
 }
+
+
+export function isGitTreeDirty(dir: string) {
+  let { success, output } = exec('git status --porcelain --untracked-files=no', dir)
+  return !success || Boolean(output.trim())
+}

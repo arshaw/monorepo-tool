@@ -3,7 +3,10 @@ import MonoRepo from '../MonoRepo'
 import { whitelistDeps, DepType } from './dep-objs'
 import Pkg from './Pkg'
 import { RootInnerRefError, InnerInnerRefError } from '../errors'
-import InnerPkg from './InnerPkg';
+import InnerPkg from './InnerPkg'
+
+
+// TODO: check that a package isnt referring to itself
 
 
 export function ensureMonoRepoHealth(monoRepo: MonoRepo) {

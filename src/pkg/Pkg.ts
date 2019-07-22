@@ -41,7 +41,7 @@ export default class Pkg {
   async updateJson(newJsonData: any) {
     let oldJsonData = this.jsonData
     let oldJsonText = this.jsonText
-    let newJsonText = JSON.stringify(newJsonData, null, '  ')
+    let newJsonText = JSON.stringify(newJsonData, null, '  ') + '\n' // TODO: use old text to determine end
 
     log('Writing mods to', this.jsonPath, newJsonData)
     await writeFile(this.jsonPath, newJsonText, { encoding: 'utf8' })

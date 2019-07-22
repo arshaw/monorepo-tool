@@ -3,6 +3,8 @@ import { buildProj } from './lib/proj'
 import { queryInstalled } from './lib/npm'
 import { RootInnerRefError, PkgNameCollisionError, InnerInnerRefError } from '../src/errors'
 
+// TODO: symlink clearing
+
 describe('install', () => {
 
   it('installs external and inner packages', () => {
