@@ -28,7 +28,7 @@ export async function resolveVersionish(monoRepo: MonoRepo, subjectPkgs: InnerPk
   }
 
   if (!commitHash) {
-    commitHash = await gitRepo.getTagUnderlyingHash(versionish)
+    commitHash = await gitRepo.getTagUnderlyingHash(versionish) // second call of getTagUnderlyingHash?
   }
 
   return commitHash

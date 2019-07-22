@@ -34,11 +34,14 @@ export async function preparePublish(monoRepo: MonoRepo, subjectPkgs: InnerPkg[]
     subjectPkgs.map(async (pkg) => {
       let distData = await pkg.queryPublishJsonData()
 
-      if (!distData.name) {
-        throw new PubPkgNeedsNameError(pkg.relDir)
+      if (!distData.private){
+        if (!distData.name) {
+          throw new PubPkgNeedsNameError(pkg.relDir)
+        }
+        return true
       }
 
-      return !distData.private
+      return false
     })
   )
 

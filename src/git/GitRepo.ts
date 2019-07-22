@@ -11,8 +11,11 @@ export default class GitRepo {
   /*
   Run diff interactively without buffering
   */
-  runDiff(pathMatches: string[], ignoreMatches: string[], gitArgs: string[] = []) {
-    return this.execLive([ 'diff', ...gitArgs, '--', ...buildDiffFileArgs(pathMatches, ignoreMatches) ])
+  runDiff(pathMatches: string[], ignoreMatches: string[], gitArgs: string[] = [], doPager: boolean = true) {
+    return this.execLive([
+      ...(doPager ? [] : [ '--no-pager' ]),
+      'diff', ...gitArgs, '--', ...buildDiffFileArgs(pathMatches, ignoreMatches)
+    ])
   }
 
 
@@ -149,7 +152,7 @@ function buildDiffFileArgs(pathMatches: string[] | null, ignoreMatches: string[]
     args.push('.') // all
   } else {
     for (let pathMatch of pathMatches) {
-      args.push(':' + pathMatch)
+      args.push(pathMatch)
     }
   }
 

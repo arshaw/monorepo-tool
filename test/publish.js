@@ -3,6 +3,7 @@ import { join as joinPaths } from 'path'
 import { buildProj } from './lib/proj'
 import { bin } from './lib/exec'
 
+// TODO: when private and no name. should disregard, not fail
 
 describe('publish', () => {
 

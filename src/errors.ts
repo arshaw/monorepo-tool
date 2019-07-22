@@ -97,6 +97,6 @@ export class GitCleanWorkingTreeError extends LibError {
 
 export class PubPkgNeedsNameError extends LibError {
   constructor(pkgDir: string) {
-    super(`Trying top publish package '${pkgDir}' but doesn't have a name`)
+    super(`Want to publish package '${pkgDir}' but doesn't have a name`)
   }
 }
