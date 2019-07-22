@@ -19,7 +19,7 @@ export function installPkgsViaSymlink(pkgs: InnerPkg[], monoRepo: MonoRepo, doRo
     tasks.unshift({ // unshift puts it at beginning
       label: 'root',
       func() {
-        return runPkgInstall(monoRepo, monoRepo.rootPkg!, forceCi, npmRunTimeArgs)
+        return runPkgInstall(monoRepo, monoRepo.rootPkg!, forceCi, npmRunTimeArgs, true)
       }
     })
   }
@@ -37,7 +37,7 @@ async function installPkgViaSymlink(pkg: InnerPkg, monoRepo: MonoRepo, forceCi: 
   // remove internal references temporarily because NPM will choke
   let undoJsonTransform = await removeDepEntries(pkg, innerPkgsByName)
 
-  return runPkgInstall(monoRepo, pkg, forceCi, npmRunTimeArgs)
+  return runPkgInstall(monoRepo, pkg, forceCi, npmRunTimeArgs, false)
     .finally(undoJsonTransform)
     .then(async (installOutput) => {
 

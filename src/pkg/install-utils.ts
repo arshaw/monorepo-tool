@@ -3,14 +3,22 @@ import MonoRepo from '../MonoRepo'
 import Pkg from './Pkg'
 
 
-export function runPkgInstall(monoRepo: MonoRepo, pkg: Pkg, forceCi: boolean, npmRunTimeArgs: string[]) {
+export function runPkgInstall(
+  monoRepo: MonoRepo,
+  pkg: Pkg,
+  forceCi: boolean,
+  npmRunTimeArgs: string[],
+  ignoreScripts: boolean
+) {
+  let { npmClient } = monoRepo
 
-  let npmArgs = pkg.npmClientArgs.concat(
-    monoRepo.getCmdNpmArgs('install'),
-    npmRunTimeArgs
+  let npmArgs = monoRepo.getCmdNpmArgs('install').concat(
+    pkg.npmClientArgs,
+    npmRunTimeArgs,
+    ignoreScripts ? [ npmClient.ignoreScriptsFlag ] : []
   )
 
-  let cmd = monoRepo.npmClient.buildInstallCmd(forceCi, npmArgs)
+  let cmd = npmClient.buildInstallCmd(forceCi, npmArgs)
 
   return execBuffered(cmd, pkg.dir)
 }

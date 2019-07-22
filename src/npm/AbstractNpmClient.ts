@@ -29,6 +29,7 @@ export interface NpmAddConfig {
 export default abstract class AbstractNpmClient {
 
   abstract baseCmd: string
+  ignoreScriptsFlag: string = '--ignore-scripts'
 
 
   abstract buildInstallCmd(forceCi: boolean, npmArgs: string[]): string[]

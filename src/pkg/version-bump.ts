@@ -75,11 +75,11 @@ export async function prepareVersionBump(monoRepo: MonoRepo, subjectPkgs: InnerP
     return Boolean(pkg.jsonData.name)
   })
 
-  let bumpPkgs = forceAllPkgs
+  let directBumpPkgs = forceAllPkgs
     ? namedPkgs
     : await changedPkgsSincePoint(monoRepo, namedPkgs, oldVersion, [])
 
-  if (!bumpPkgs.length) {
+  if (!directBumpPkgs.length) {
     console.log()
     console.log('No changed packages')
     console.log()
@@ -87,14 +87,15 @@ export async function prepareVersionBump(monoRepo: MonoRepo, subjectPkgs: InnerP
   }
 
   if (rootPkg && ('version' in rootPkg.jsonData)) {
-    bumpPkgs.push(rootPkg)
+    directBumpPkgs.push(rootPkg)
   }
 
-  let modMap = buildModMap(bumpPkgs, newVersion, monoRepo.innerPkgs)
+  let modMap = buildModMap(directBumpPkgs, newVersion, monoRepo.innerPkgs)
   let modUndos: (() => Promise<void>)[] = []
 
+  let allBumpPkgs = mapHashToArray(modMap, (mod) => mod.pkg)
   let pkgGitRepo = versionConfig.gitTagEnabled
-    ? await buildPkgGitRepo(rootDir, bumpPkgs)
+    ? await buildPkgGitRepo(rootDir, allBumpPkgs)
     : null
 
   let isFilesAdded = false
@@ -186,12 +187,13 @@ export async function prepareVersionBump(monoRepo: MonoRepo, subjectPkgs: InnerP
 // ----------------------------------------------------------------------------------------------------
 
 
-function buildModMap(bumpPkgs: Pkg[], newVersion: string, allInnerPkgs: Pkg[]): ModMap {
+function buildModMap(directBumpPkgs: Pkg[], newVersion: string, allInnerPkgs: Pkg[]): ModMap {
   let modMap: ModMap = {}
 
-  for (let pkg of bumpPkgs) {
+  for (let pkg of directBumpPkgs) {
     if (pkg.jsonData.version !== newVersion) {
-      processChangedPkg(pkg, newVersion, true, allInnerPkgs, modMap)
+      let mod = processPkgBump(pkg, newVersion, allInnerPkgs, modMap)
+      mod.directlyChanged = true
     }
   }
 
@@ -199,52 +201,49 @@ function buildModMap(bumpPkgs: Pkg[], newVersion: string, allInnerPkgs: Pkg[]): 
 }
 
 
-function processChangedPkg(pkg: Pkg, newVersion: string, directlyChanged: boolean, allInnerPkgs: Pkg[], modMap: ModMap) {
+/*
+Will populate the modifications that must happen if ONLY pkg were to be bumped. The [recursive] caller will add-in
+the modifications to pkg's dependencies later
+*/
+function processPkgBump(pkg: Pkg, newVersion: string, allInnerPkgs: Pkg[], modMap: ModMap) {
   let mod = modMap[pkg.dir]
-  let modAlreadyExists = Boolean(mod)
 
   if (!mod) {
-    mod = modMap[pkg.dir] = { pkg, version: newVersion }
-  }
+    mod = modMap[pkg.dir] = { pkg }
 
-  if (directlyChanged) {
-    mod.directlyChanged = true
-  }
+    let pkgName = pkg.jsonData.name
+    if (pkgName) { // can others refer to it?...
 
-  if (modAlreadyExists) {
-    return mod
-  }
+      mod.version = newVersion // ...if so, give it a version bump
 
-  let pkgName = pkg.jsonData.name
-  if (pkgName) { // can others refer to it?
+      // identify other pkgs that refer to this one
+      for (let userPkg of allInnerPkgs) {
+        let matchedDeps = whitelistDeps(userPkg.jsonData, pkgName)
+        let updatedDeps: PkgDeps = {}
 
-    // identify other pkgs that refer to this one
-    for (let userPkg of allInnerPkgs) {
-      let matchedDeps = whitelistDeps(userPkg.jsonData, pkgName)
-      let updatedDeps: PkgDeps = {}
+        for (let depType in matchedDeps) {
+          let existingRange = matchedDeps[depType as DepType]![pkgName]
 
-      for (let depType in matchedDeps) {
-        let existingRange = matchedDeps[depType as DepType]![pkgName]
+          if (!semver.satisfies(newVersion, existingRange)) {
+            let newVerRange = updateVerRange(existingRange, newVersion)
 
-        if (!semver.satisfies(newVersion, existingRange)) {
-          let newVerRange = updateVerRange(existingRange, newVersion)
-
-          if (!newVerRange) {
-            throw new UnknownVersionRangeBumpError(userPkg.readableId(), pkg.readableId(), existingRange)
-          } else {
-            log(userPkg.readableId(), 'uses out of date', depType, pkgName, newVerRange)
-            updatedDeps[depType as DepType] = { [pkgName]: newVerRange }
+            if (!newVerRange) {
+              throw new UnknownVersionRangeBumpError(userPkg.readableId(), pkg.readableId(), existingRange)
+            } else {
+              log(userPkg.readableId(), 'uses out of date', depType, pkgName, newVerRange)
+              updatedDeps[depType as DepType] = { [pkgName]: newVerRange }
+            }
           }
         }
-      }
 
-      if (Object.keys(updatedDeps).length) {
-        let depMod = processChangedPkg(userPkg, newVersion, false, allInnerPkgs, modMap)
+        if (Object.keys(updatedDeps).length) {
+          let depMod = processPkgBump(userPkg, newVersion, allInnerPkgs, modMap)
 
-        if (depMod.deps) { // has some updated deps from a different mod
-          depMod.deps = mergeDeps(depMod.deps, updatedDeps)
-        } else {
-          depMod.deps = updatedDeps
+          if (depMod.deps) { // has some updated deps from a different mod
+            depMod.deps = mergeDeps(depMod.deps, updatedDeps)
+          } else {
+            depMod.deps = updatedDeps
+          }
         }
       }
     }

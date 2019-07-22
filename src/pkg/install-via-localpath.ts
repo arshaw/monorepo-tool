@@ -20,7 +20,7 @@ export function installPkgsViaLocalPath(pkgs: InnerPkg[], monoRepo: MonoRepo, do
   let installTasks = pkgs.map((pkg) => ({
     label: pkg.readableId(),
     func: async () => {
-      return runPkgInstall(monoRepo, pkg, forceCi, npmRunTimeArgs)
+      return runPkgInstall(monoRepo, pkg, forceCi, npmRunTimeArgs, false)
     }
   }))
 
@@ -28,7 +28,7 @@ export function installPkgsViaLocalPath(pkgs: InnerPkg[], monoRepo: MonoRepo, do
     installTasks.unshift({ // unshift puts it at beginning
       label: 'root',
       func: () => {
-        return runPkgInstall(monoRepo, monoRepo.rootPkg!, forceCi, npmRunTimeArgs)
+        return runPkgInstall(monoRepo, monoRepo.rootPkg!, forceCi, npmRunTimeArgs, true)
       }
     })
   }
