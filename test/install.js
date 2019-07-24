@@ -1,6 +1,9 @@
+import { lstatSync } from 'fs'
+import { join as joinPaths } from 'path'
 import { bin } from './lib/exec'
 import { buildProj } from './lib/proj'
 import { queryInstalled } from './lib/npm'
+import { isGitTreeDirty } from './lib/git'
 import { RootInnerRefError, PkgNameCollisionError, InnerInnerRefError } from '../src/errors'
 
 // TODO: symlink clearing
@@ -147,6 +150,46 @@ describe('install', () => {
 
     expect(success).toBe(false)
     expect(output).toContain(new PkgNameCollisionError('core').message)
+  })
+
+
+  // installing with --copy-pkgs is broken!
+  xit('can install via copying files', () => {
+    let proj = buildProj({
+      'monorepo.json': { packages: [ 'packages/*' ] },
+      'package.json': { dependencies: {
+      } },
+      'packages/': {
+        'core/': {
+          'package.json': { name: 'core' },
+          'file.js': 'alert("hi")'
+        },
+        'plug/': {
+          'package.json': { name: 'plug', dependencies: {
+            core: '*'
+          } }
+        }
+      }
+    })
+
+    let { success } = bin([ 'install', '--copy-pkgs' ], proj.path, true, true, true)
+    expect(success).toBe(true)
+
+    let pkgLstat
+    try {
+      pkgLstat = lstatSync(joinPaths(proj.path, 'packages/plug/node_modules/core'))
+    } catch(error) {}
+
+    expect(pkgLstat && pkgLstat.isDirectory() && !pkgLstat.isSymbolicLink()).toBe(true)
+
+    let fileLstat
+    try {
+      fileLstat = lstatSync(joinPaths(proj.path, 'packages/plug/node_modules/core/file.js'))
+    } catch(error) {}
+
+    expect(fileLstat && fileLstat.isFile()).toBe(true)
+
+    expect(isGitTreeDirty(proj.path)).toBe(false)
   })
 
 })
