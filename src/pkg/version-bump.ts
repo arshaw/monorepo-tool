@@ -86,12 +86,13 @@ export async function prepareVersionBump(monoRepo: MonoRepo, subjectPkgs: InnerP
     return
   }
 
-  if (rootPkg && ('version' in rootPkg.jsonData)) {
-    directBumpPkgs.push(rootPkg)
-  }
-
   let modMap = buildModMap(directBumpPkgs, newVersion, monoRepo.innerPkgs)
   let modUndos: (() => Promise<void>)[] = []
+
+  // if root package has a version field, make an operation to update that too
+  if (rootPkg && ('version' in rootPkg.jsonData)) {
+    modMap[rootDir] = { pkg: rootPkg, version: newVersion }
+  }
 
   let allBumpPkgs = mapHashToArray(modMap, (mod) => mod.pkg)
   let pkgGitRepo = versionConfig.gitTagEnabled

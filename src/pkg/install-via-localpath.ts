@@ -13,7 +13,7 @@ export function installPkgsViaLocalPath(pkgs: InnerPkg[], monoRepo: MonoRepo, do
   let undoTransformFuncs: (() => Promise<void>)[] = []
 
   let transformPromises = monoRepo.innerPkgs.map(async (pkg) => { // to ALL packages
-    let undo = await addDepEntries(pkg, transformToLocalePaths(pkg.jsonData, innerPkgsByName))
+    let undo = await addDepEntries(pkg, transformToLocalePaths(pkg, innerPkgsByName))
     undoTransformFuncs.push(undo)
   })
 
