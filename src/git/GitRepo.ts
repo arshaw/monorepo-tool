@@ -1,5 +1,6 @@
 import { join as joinPaths } from 'path'
 import { execLive, execBuffered } from '../util/exec'
+import { log } from '../util/log'
 
 
 export default class GitRepo {
@@ -55,6 +56,8 @@ export default class GitRepo {
       'diff', sinceCommit, '--name-only', '--ignore-submodules', ...gitArgs,
       '--', ...buildDiffFileArgs(pathMatches, ignoreMatches)
     ]
+
+    log(cmd)
 
     return this.exec(cmd).then((output) => {
       return Boolean(output.trim())

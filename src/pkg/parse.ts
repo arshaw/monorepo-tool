@@ -58,7 +58,7 @@ export function parsePkgInput(input: InnerPkgConfigInput): InnerPkgConfig { // T
 function combinePkgConfigs(config0: BaseConfig, config1: InnerPkgConfig): InnerPkgConfig { // bad name
   return {
     path: config1.path,
-    distDir: config1.distDir || config0.distDir,
+    distDir: config1.distDir || config0.distDir, // TODO: better way of combining
     ignoreFiles: config0.ignoreFiles.concat(config1.ignoreFiles),
     npmClientArgs: config0.npmClientArgs.concat(config1.npmClientArgs)
   }
