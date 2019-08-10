@@ -2,7 +2,7 @@ import * as semver from 'semver'
 import * as prompts from 'prompts'
 import { log } from '../util/log'
 import { updateVerRange } from '../util/version'
-import { runPrettyParallel } from '../util/pretty-task'
+import { runPrettySerial } from '../util/pretty-task'
 import { allSettled, runParallel, allSettledVoid } from '../util/async'
 import { FailedNpmScript, UnknownVersionRangeBumpError, GitCleanWorkingTreeError } from '../errors'
 import MonoRepo from '../MonoRepo'
@@ -107,6 +107,8 @@ export async function prepareVersionBump(monoRepo: MonoRepo, subjectPkgs: InnerP
 
 
   async function execute() {
+
+    log('Running preversion hooks...')
     await preVersionHook()
 
     modUndos = await modifyFiles(modMap)
@@ -116,6 +118,7 @@ export async function prepareVersionBump(monoRepo: MonoRepo, subjectPkgs: InnerP
       isFilesAdded = true
     }
 
+    log('Running version hooks...')
     await versionHook()
 
     if (pkgGitRepo) {
@@ -132,11 +135,15 @@ export async function prepareVersionBump(monoRepo: MonoRepo, subjectPkgs: InnerP
             versionConfig.gitTagPrefix + newVersion,
             message,
             versionConfig.gitTagSign
-          )
+          ).catch((err) => {
+            console.error('Repo with problem making tag: ' + repo.rootDir)
+            throw err
+          })
         })
       )
     }
 
+    log('Running postversion hooks...')
     await postVersionHook()
   }
 
@@ -419,14 +426,18 @@ async function runNpmScripts(npmClient: AbstractNpmClient, modMap: ModMap, scrip
     }
   }
 
+  // TODO: use EXEC utils somehow. not DRY like this
   let tasks = pkgsWithScripts.map((pkg: Pkg) => ({
-    label: pkg.readableId(),
+    label: pkg.readableId() + ' (script(bump): ' + scriptName + ')',
     func() {
-      return pkg.runScript(npmClient, scriptName, true) // bufferOutput=true
+      return pkg.runScript(npmClient, scriptName, false) // bufferOutput=false
     }
   }))
 
-  return runPrettyParallel(tasks).catch(() => {
+  // better to do serial in case there are interactive command prompts
+  // TODO: make a setting to toggle this?
+  // TODO: if change, will need to switch bufferOutput above
+  return runPrettySerial(tasks).catch(() => {
     throw new FailedNpmScript(scriptName)
   })
 }

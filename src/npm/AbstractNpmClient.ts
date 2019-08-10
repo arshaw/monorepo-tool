@@ -35,12 +35,8 @@ export default abstract class AbstractNpmClient {
   abstract buildInstallCmd(forceCi: boolean, npmArgs: string[]): string[]
   abstract buildAddCmd(pkgArgs: string[], npmArgs: string[]): string[]
   abstract buildRemoveCmd(pkgArgs: string[], npmArgs: string[]): string[]
-  abstract buildExecCmd(npmArgs: string[]): string[]
+  abstract buildExecCmd(cmdStr: string): string[]
 
-
-  buildRunCmd(npmArgs: string[]): string[] {
-    return [ this.baseCmd, 'run', ...npmArgs ]
-  }
 
   buildPublishCmd(npmArgs: string[]): string[] {
     return [ this.baseCmd, 'publish', ...npmArgs ]

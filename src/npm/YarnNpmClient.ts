@@ -15,8 +15,10 @@ export default class YarnNpmClient extends AbstractNpmClient {
   }
 
 
-  buildExecCmd(otherArgs: string[]): string[] {
-    return otherArgs // execute directly because no npx equiv
+  buildExecCmd(cmdStr: string): string[] {
+    // pipe directly to bash! no npx equiv! TODO: x-platform compat?
+    // TODO: use spawn() with shell:true arg?
+    return [ 'eval', cmdStr ]
   }
 
 

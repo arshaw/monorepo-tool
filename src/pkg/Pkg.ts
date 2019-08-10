@@ -59,9 +59,10 @@ export default class Pkg {
 
 
   runScript(npmClient: AbstractNpmClient, scriptName: string, buffer: boolean = false): Promise<string> {
+    let cmd = this.buildScriptCmd(npmClient, scriptName)
 
-    if (this.hasScript(scriptName)) {
-      let cmd = npmClient.buildRunCmd([ scriptName ].concat(this.npmClientArgs))
+    if (cmd) {
+      log('runcmd', cmd, buffer, this.dir)
 
       if (buffer) {
         return execBuffered(cmd, this.dir)
@@ -77,6 +78,17 @@ export default class Pkg {
 
   hasScript(scriptName: string): boolean {
     return scriptName in (this.jsonData.scripts || {})
+  }
+
+
+  buildScriptCmd(npmClient: AbstractNpmClient, scriptName: string): string[] | null {
+    let scriptCmdStr: string = (this.jsonData.scripts || {})[scriptName]
+
+    if (scriptCmdStr) {
+      return npmClient.buildExecCmd(scriptCmdStr)
+    }
+
+    return null
   }
 
 

@@ -1,5 +1,4 @@
 import { ReleaseType } from 'semver'
-import { quote } from 'shell-quote'
 import { UnsupportedDepTypeError } from '../errors'
 import { extractNamedVal, extractNamedFlag, extractPositionalArg } from '../util/arg-parse'
 import { DepType } from '../pkg/dep-objs'
@@ -26,8 +25,8 @@ export default class DefactoNpmClient extends AbstractNpmClient {
   }
 
 
-  buildExecCmd(npmArgs: string[]): string[] {
-    return [ 'npx', '-c', quote(npmArgs) ]
+  buildExecCmd(cmdStr: string): string[] {
+    return [ 'npx', '-c', cmdStr ]
   }
 
 

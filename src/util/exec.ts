@@ -27,7 +27,7 @@ export function execLive(cmd: string[], cwd: string): Promise<void> {
   return new Promise((resolve, reject) => {
     let child = spawn(cmd[0], cmd.slice(1), {
       cwd,
-      stdio: [ 'ignore', 1, 2 ] // TODO: will accept input?
+      stdio: [ 0, 1, 2 ]
     })
     child.on('error', (error) => {
       reject(new ExecError(null, error.toString(), error.message))
